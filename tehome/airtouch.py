@@ -36,27 +36,25 @@ async def poll():
 	await asyncio.sleep(0.1)
 	try:
 		await airtouch.UpdateInfo()
-	except asyncio.CancelledError:
-		raise
 	except Exception as e:
 		print("Error updating AirTouch info: %s" % e)
 	while True:
 		await asyncio.sleep(60)
-		try:
-			while True:
+		while True:
+			try:
 				await airtouch.UpdateInfo()
 				if hasattr(airtouch.acs[0], "Temperature"):
 					break
-				print("AirTouch update failure, retrying")
-				await asyncio.sleep(5)
+			except Exception as e:
+				pass
+			await asyncio.sleep(1)
+		try:
 			await auto()
 			for group in airtouch.groups:
 				for char in ("CurrentTemperature", "CurrentHeatingCoolingState"):
 					await updateChar(group, char)
-		except asyncio.CancelledError:
-			raise
 		except Exception as e:
-			print("Error updating AirTouch info: %s" % e)
+			print("Error in AirTouch auto/update: %s" % e)
 
 async def get(group, char):
 	if char == "TargetTemperature":
