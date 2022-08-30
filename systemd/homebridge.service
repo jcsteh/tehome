@@ -1,0 +1,6 @@
+[Unit]
+Description=Homebridge
+
+[Service]
+ExecStart=/home/jamie/homebridge/node_modules/.bin/homebridge
+Restart=on-failure

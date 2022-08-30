@@ -1,0 +1,4 @@
+.gitattributes text
+.gitignore text
+*.py text
+*.service text
