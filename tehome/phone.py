@@ -22,23 +22,7 @@ class Account(pjsua.AccountCallback):
 class Call(pjsua.CallCallback):
 	def __init__(self, call):
 		self.call = call
-		call.set_callback(self)
-		self._dtmfFuture = None
 		self._player = None
-
-	def on_dtmf_digit(self, digit):
-		#print("DTMF " + digit)
-		if self._dtmfFuture:
-			loop.call_soon_threadsafe(self._dtmfFuture.set_result, digit)
-
-	def on_state(self):
-		if (self._dtmfFuture and not self._dtmfFuture.done() and
-				self.call.info().state == pjsua.CallState.DISCONNECTED):
-			loop.call_soon_threadsafe(self._dtmfFuture.set_exception, EOFError())
-
-	def waitForDtmf(self):
-		self._dtmfFuture = loop.create_future()
-		return self._dtmfFuture
 
 	def play(self, fileName):
 		fileName = os.path.join(os.path.dirname(__file__), fileName)
