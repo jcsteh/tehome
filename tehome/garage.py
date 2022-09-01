@@ -1,10 +1,9 @@
 import asyncio
-import switchbotpy
+import bleak
+import switchbot
 from . import config, homebridge
 
 ACC_NAME = "Garage door"
-bot = switchbotpy.Bot(bot_id=0, name="Garage door", mac=config.GARAGE_MAC)
-bot.encrypted(config.GARAGE_PW)
 isOpen = False
 
 async def get(char):
@@ -13,10 +12,15 @@ async def get(char):
 	elif char == "ObstructionDetected":
 		return False
 
+async def getBot():
+	dev = await bleak.BleakScanner.find_device_by_address(config.GARAGE_MAC)
+	return switchbot.devices.bot.Switchbot(dev, password=config.GARAGE_PW)
+
 async def set(char, val):
 	global isOpen
-	bot.press()
 	print("opening garage")
+	bot = await getBot()
+	await bot.press()
 	await asyncio.sleep(5)
 	isOpen = val == 0
 	await homebridge.updateChar(ACC_NAME, "CurrentDoorState", val)
