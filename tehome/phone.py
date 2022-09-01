@@ -71,10 +71,13 @@ async def handler():
 			# If a second call arrives within 15 seconds, open the garage door.
 			firstCallTime = 0
 			call.play("success.wav")
-			await garage.set("TargetDoorState", 0)
+			garageTask = asyncio.create_task(garage.set("TargetDoorState", 0))
 		else:
 			call.play("hello.wav")
-			await asyncio.sleep(2)
 			firstCallTime = time.time()
+			garageTask = None
+		await asyncio.sleep(2)
 		print("Hanging up call")
 		call.hangup()
+		if garageTask:
+			await garageTask
