@@ -4,7 +4,7 @@ Requires=homebridge.service
 
 [Service]
 Environment="LD_LIBRARY_PATH=/home/jamie/.local/lib"
-ExecStart=python -m tehome
+ExecStart=python -um tehome
 Restart=on-failure
 
 [Install]
