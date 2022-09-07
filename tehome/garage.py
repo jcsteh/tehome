@@ -1,14 +1,22 @@
 import asyncio
+import time
 import bleak
 import switchbot
-from . import config, homebridge
+from quart import request
+from . import config, homebridge, web
+
+OPEN = 0
+CLOSED = 1
+OPENING = 2
+CLOSING = 3
 
 ACC_NAME = "Garage door"
-isOpen = False
+state = CLOSED
+changeTime = 0
 
 async def get(char):
 	if char in ("CurrentDoorState", "TargetDoorState"):
-		return 0 if isOpen else 1
+		return state
 	elif char == "ObstructionDetected":
 		return False
 
@@ -17,10 +25,26 @@ async def getBot():
 	return switchbot.devices.bot.Switchbot(dev, password=config.GARAGE_PW)
 
 async def set(char, val):
-	global isOpen
-	print("opening garage")
+	global state
+	if val == state:
+		return # Already open/closed.
+	print("Closing garage" if val == CLOSED else "Opening garage")
 	bot = await getBot()
 	await bot.press()
-	await asyncio.sleep(5)
-	isOpen = val == 0
-	await homebridge.updateChar(ACC_NAME, "CurrentDoorState", val)
+	state = OPENING if val == OPEN else CLOSING
+	await homebridge.updateChar(ACC_NAME, "CurrentDoorState", state)
+
+@web.app.route("/garageSensorReport")
+async def onSensor():
+	global state, changeTime
+	tilt = request.args.get("tilt")
+	if tilt:
+		tilt = int(tilt)
+		newState =  OPEN if tilt < 10 else CLOSED
+		if newState != state:
+			state = newState
+			changeTime = time.time()
+			print("Garage door %s" % ("open" if state == OPEN else "closed"))
+		await homebridge.updateChar(ACC_NAME, "CurrentDoorState", state)
+		await homebridge.updateChar(ACC_NAME, "TargetDoorState", state)
+	return ''
