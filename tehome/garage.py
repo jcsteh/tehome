@@ -1,5 +1,4 @@
 import asyncio
-import time
 import bleak
 import switchbot
 from quart import request
@@ -10,9 +9,10 @@ CLOSED = 1
 OPENING = 2
 CLOSING = 3
 
-ACC_NAME = "Garage door"
+DOOR_ACC = "Garage door"
+TEMP_ACC = "Garage temperature"
+LUX_ACC = "Garage light sensor"
 state = CLOSED
-changeTime = 0
 
 async def get(char):
 	if char in ("CurrentDoorState", "TargetDoorState"):
@@ -32,19 +32,27 @@ async def set(char, val):
 	bot = await getBot()
 	await bot.press()
 	state = OPENING if val == OPEN else CLOSING
-	await homebridge.updateChar(ACC_NAME, "CurrentDoorState", state)
+	await homebridge.updateChar(DOOR_ACC, "CurrentDoorState", state)
 
 @web.app.route("/garageSensorReport")
 async def onSensor():
-	global state, changeTime
+	global state
 	tilt = request.args.get("tilt")
 	if tilt:
 		tilt = int(tilt)
 		newState =  OPEN if tilt < 10 else CLOSED
 		if newState != state:
 			state = newState
-			changeTime = time.time()
 			print("Garage door %s" % ("open" if state == OPEN else "closed"))
-		await homebridge.updateChar(ACC_NAME, "CurrentDoorState", state)
-		await homebridge.updateChar(ACC_NAME, "TargetDoorState", state)
+		await homebridge.updateChar(DOOR_ACC, "CurrentDoorState", state)
+		await homebridge.updateChar(DOOR_ACC, "TargetDoorState", state)
+	temp = request.args.get("temp")
+	if temp:
+		temp = float(temp)
+		await homebridge.updateChar(TEMP_ACC, "CurrentTemperature", temp)
+	lux = request.args.get("lux")
+	if lux:
+		lux = int(lux)
+		lux = max(lux, 0.0001) # HomeKit minimum.
+		await homebridge.updateChar(LUX_ACC, "CurrentAmbientLightLevel", lux)
 	return ''

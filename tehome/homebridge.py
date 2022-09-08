@@ -26,7 +26,7 @@ async def handler():
 		name = payload["name"]
 		char = payload["characteristic"]
 		if topic == "get":
-			if name == garage.ACC_NAME:
+			if name == garage.DOOR_ACC:
 				getter = garage.get(char)
 			elif name.startswith(airtouch.ACC_PREFIX):
 				getter = airtouch.get(int(name[-1]), char)
@@ -44,7 +44,7 @@ async def handler():
 			await send(reply)
 		elif topic == "set":
 			val = payload["value"]
-			if name == garage.ACC_NAME:
+			if name == garage.DOOR_ACC:
 				setter = garage.set(char, val)
 			elif name.startswith(airtouch.ACC_PREFIX):
 				setter = airtouch.set(int(name[-1]), char, val)
@@ -64,7 +64,9 @@ async def addAccessory(name, service):
 
 async def setup():
 	await connect()
-	await addAccessory(garage.ACC_NAME, "GarageDoorOpener")
+	await addAccessory(garage.DOOR_ACC, "GarageDoorOpener")
+	await addAccessory(garage.TEMP_ACC, "TemperatureSensor")
+	await addAccessory(garage.LUX_ACC, "LightSensor")
 	await airtouch.airtouch.UpdateInfo()
 	for group in airtouch.airtouch.groups:
 		await addAccessory("%s%d" % (ACC_AIRTOUCH_PREFIX, group), "Thermostat")
