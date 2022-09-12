@@ -2,7 +2,7 @@ import asyncio
 import bleak
 import switchbot
 from quart import request
-from . import config, homebridge, web
+from . import config, homebridge, slack, web
 
 OPEN = 0
 CLOSED = 1
@@ -13,6 +13,7 @@ DOOR_ACC = "Garage door"
 TEMP_ACC = "Garage temperature"
 LUX_ACC = "Garage light sensor"
 state = CLOSED
+doorNotifyTask = None
 
 async def get(char):
 	if char in ("CurrentDoorState", "TargetDoorState"):
@@ -36,14 +37,20 @@ async def set(char, val):
 
 @web.app.route("/garageSensorReport")
 async def onSensor():
-	global state
+	global state, doorNotifyTask
 	tilt = request.args.get("tilt")
 	if tilt:
 		tilt = int(tilt)
 		newState =  OPEN if tilt < 10 else CLOSED
 		if newState != state:
 			state = newState
-			print("Garage door %s" % ("open" if state == OPEN else "closed"))
+			if doorNotifyTask:
+				doorNotifyTask.cancel()
+			if state == OPEN:
+				print("Garage door open")
+				doorNotifyTask = asyncio.create_task(notifyOpenTooLong())
+			else:
+				print("Garage door closed")
 		await homebridge.updateChar(DOOR_ACC, "CurrentDoorState", state)
 		await homebridge.updateChar(DOOR_ACC, "TargetDoorState", state)
 	temp = request.args.get("temp")
@@ -56,3 +63,7 @@ async def onSensor():
 		lux = max(lux, 0.0001) # HomeKit minimum.
 		await homebridge.updateChar(LUX_ACC, "CurrentAmbientLightLevel", lux)
 	return ''
+
+async def notifyOpenTooLong():
+	await asyncio.sleep(300)
+	await slack.msg("Garage door has been open for 5 minutes!")
