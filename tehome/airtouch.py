@@ -41,9 +41,11 @@ async def poll():
 	while True:
 		await asyncio.sleep(60)
 		while True:
+			# Keep retrying until we successfully get all the data.
 			try:
 				await airtouch.UpdateInfo()
-				if hasattr(airtouch.acs[0], "Temperature"):
+				if (airtouch.acs and airtouch.groups and
+						hasattr(airtouch.acs[0], "Temperature")):
 					break
 			except Exception as e:
 				pass
