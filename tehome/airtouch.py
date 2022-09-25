@@ -19,8 +19,9 @@ def getTemp(group):
 async def auto():
 	for g in airtouch.groups:
 		temp = getTemp(g)
-		if ((config.AIRTOUCH_HEAT and temp >= config.AIRTOUCH_TEMP) or
-				(not config.AIRTOUCH_HEAT and temp <= config.AIRTOUCH_TEMP)):
+		if (airtouch.groups[g].PowerState == 'On' and 
+				((config.AIRTOUCH_HEAT and temp >= config.AIRTOUCH_TEMP) or
+				(not config.AIRTOUCH_HEAT and temp <= config.AIRTOUCH_TEMP))):
 			print("Air group %d reached target temp, turning off" % g)
 			await airtouch.TurnGroupOff(g)
 	if airtouch.acs[0].PowerState == 'On' and all(g.PowerState == 'Off' for g in airtouch.groups.values()):
