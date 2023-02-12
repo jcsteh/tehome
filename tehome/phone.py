@@ -60,11 +60,13 @@ async def handler():
 		print("Got call")
 		await asyncio.sleep(0.1) # Hack to avoid deadlock with media event.
 		caller = RE_CALLER.match(call.call.info().remote_contact)
-		if not caller or caller.group(1) not in config.PHONE_CALLERS:
+		if caller:
+			caller = caller.group(1)
+		if caller not in config.PHONE_CALLERS:
 			print("Rejecting unknown caller")
 			call.hangup()
 			continue
-		print("Answering call")
+		print("Answering call from %s" % caller)
 		call.call.answer()
 		await asyncio.sleep(1)
 		if time.time() < firstCallTime + 15:
