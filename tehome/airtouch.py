@@ -4,6 +4,7 @@ import airtouch4pyapi
 
 ACC_PREFIX = "AirTouch zone "
 airtouch = airtouch4pyapi.AirTouch(config.AIRTOUCH_ADDR)
+wasAcOn = False
 
 async def updateChar(group, char):
 	name = "%s%d" % (ACC_PREFIX, group)
@@ -17,6 +18,7 @@ def getTemp(group):
 	return airtouch.groups[group].Temperature
 
 async def auto():
+	global wasAcOn
 	for g in airtouch.groups:
 		temp = getTemp(g)
 		if (airtouch.groups[g].PowerState == 'On' and 
@@ -24,13 +26,24 @@ async def auto():
 				(not config.AIRTOUCH_HEAT and temp <= config.AIRTOUCH_TEMP))):
 			print("Air group %d reached target temp, turning off" % g)
 			await airtouch.TurnGroupOff(g)
-	if airtouch.acs[0].PowerState == 'On' and all(g.PowerState == 'Off' for g in airtouch.groups.values()):
+	isAcOn = airtouch.acs[0].PowerState == 'On'
+	if isAcOn and all(g.PowerState == 'Off' for g in airtouch.groups.values()):
 		print("Turning off air main")
 		await airtouch.TurnAcOff(0)
+		wasAcOn = False
 		return
-	if airtouch.acs[0].PowerState == 'Off' and any(g.PowerState == 'On' for g in airtouch.groups.values()):
+	if wasAcOn and not isAcOn:
+		print("Air main manually turned off, turning off all groups")
+		for g in airtouch.groups:
+			await airtouch.TurnGroupOff(g)
+		wasAcOn = False
+		return
+	if not isAcOn and any(g.PowerState == 'On' for g in airtouch.groups.values()):
 		print("Turning on air main")
 		await airtouch.TurnAcOn(0)
+		wasAcOn = True
+		return
+	wasAcOn = isAcOn
 
 async def poll():
 	# Hack to deal with airtouch4pyapi suppressing CancelledError.
