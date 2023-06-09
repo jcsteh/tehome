@@ -41,7 +41,7 @@ class Call(pjsua.CallCallback):
 		except pjsua.Error:
 			pass
 
-RE_CALLER = re.compile(r'^<sip:(\d+)@')
+RE_CALLER = re.compile(r'<sip:(\d+)@')
 async def handler():
 	global loop, pj
 	loop = asyncio.get_event_loop()
@@ -59,11 +59,11 @@ async def handler():
 		call = await acc.waitForCall()
 		print("Got call")
 		await asyncio.sleep(0.1) # Hack to avoid deadlock with media event.
-		caller = RE_CALLER.match(call.call.info().remote_contact)
+		caller = RE_CALLER.search(call.call.info().remote_uri)
 		if caller:
 			caller = caller.group(1)
 		if caller not in config.PHONE_CALLERS:
-			print("Rejecting unknown caller")
+			print("Rejecting unknown caller: %s" % caller)
 			call.hangup()
 			continue
 		print("Answering call from %s" % caller)
