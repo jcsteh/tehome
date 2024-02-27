@@ -2,7 +2,7 @@ import asyncio
 import bleak
 import switchbot
 from quart import request
-from . import config, homebridge, slack, web
+from . import config, homebridge, web
 
 OPEN = 0
 CLOSED = 1
@@ -12,6 +12,7 @@ CLOSING = 3
 DOOR_ACC = "Garage door"
 TEMP_ACC = "Garage temperature"
 LUX_ACC = "Garage light sensor"
+TOO_LONG_ACC = "Garage door open too long"
 state = CLOSED
 doorNotifyTask = None
 
@@ -51,6 +52,7 @@ async def onGarageSensor():
 				doorNotifyTask = asyncio.create_task(notifyOpenTooLong())
 			else:
 				print("Garage door closed")
+				await homebridge.updateChar(TOO_LONG_ACC, "MotionDetected", 0)
 		await homebridge.updateChar(DOOR_ACC, "CurrentDoorState", state)
 		await homebridge.updateChar(DOOR_ACC, "TargetDoorState", state)
 	temp = request.args.get("temp")
@@ -66,4 +68,4 @@ async def onGarageSensor():
 
 async def notifyOpenTooLong():
 	await asyncio.sleep(300)
-	await slack.msg("Garage door has been open for 5 minutes!")
+	await homebridge.updateChar(TOO_LONG_ACC, "MotionDetected", 1)

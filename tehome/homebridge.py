@@ -67,6 +67,7 @@ async def setup():
 	await addAccessory(garage.DOOR_ACC, "GarageDoorOpener")
 	await addAccessory(garage.TEMP_ACC, "TemperatureSensor")
 	await addAccessory(garage.LUX_ACC, "LightSensor")
+	await addAccessory(garage.TOO_LONG_ACC, "MotionSensor")
 	await airtouch.airtouch.UpdateInfo()
 	for group in airtouch.airtouch.groups:
 		await addAccessory("%s%d" % (airtouch.ACC_PREFIX, group), "Thermostat")
