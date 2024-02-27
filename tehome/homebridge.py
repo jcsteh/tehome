@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import websockets
-from . import garage, airtouch
+from . import garage, airtouch, flood
 
 async def connect():
 	global bridge
@@ -70,3 +70,4 @@ async def setup():
 	await airtouch.airtouch.UpdateInfo()
 	for group in airtouch.airtouch.groups:
 		await addAccessory("%s%d" % (airtouch.ACC_PREFIX, group), "Thermostat")
+	await addAccessory(flood.ACC, "LeakSensor")

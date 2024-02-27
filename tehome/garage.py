@@ -36,7 +36,7 @@ async def set(char, val):
 	await homebridge.updateChar(DOOR_ACC, "CurrentDoorState", state)
 
 @web.app.route("/garageSensorReport")
-async def onSensor():
+async def onGarageSensor():
 	global state, doorNotifyTask
 	tilt = request.args.get("tilt")
 	if tilt:
