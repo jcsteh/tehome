@@ -1,5 +1,5 @@
 import asyncio
-from . import homebridge, airtouch, phone, web
+from . import homebridge, airtouch, phone, web, homekit
 
 async def main():
 	await asyncio.gather(
@@ -7,6 +7,7 @@ async def main():
 		airtouch.poll(),
 		phone.handler(),
 		web.handler(),
+		homekit.poll(),
 	)
 
 if __name__ == "__main__":

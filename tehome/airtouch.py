@@ -1,5 +1,5 @@
 import asyncio
-from . import config, homebridge
+from . import config, homebridge, homekit
 import airtouch4pyapi
 
 ACC_PREFIX = "AirTouch zone "
@@ -15,6 +15,9 @@ def getTemp(group):
 	if group == 3:
 		# TV room has no sensor. Use the main unit sensor.
 		return airtouch.acs[0].Temperature
+	if group == 5:
+		# The sensor in Josh's room is broken. Use his Homepod's sensor.
+		return homekit.joshTemp
 	return airtouch.groups[group].Temperature
 
 async def auto():

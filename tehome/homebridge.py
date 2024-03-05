@@ -72,3 +72,4 @@ async def setup():
 	for group in airtouch.airtouch.groups:
 		await addAccessory("%s%d" % (airtouch.ACC_PREFIX, group), "Thermostat")
 	await addAccessory(flood.ACC, "LeakSensor")
+	await addAccessory(homekit.ACC, "StatelessProgrammableSwitch")
