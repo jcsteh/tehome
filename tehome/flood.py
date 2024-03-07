@@ -7,4 +7,6 @@ ACC = "Flood sensor"
 async def onFloodSensor():
 	flood = request.args.get("flood")
 	await homebridge.updateChar(ACC, "LeakDetected", int(flood))
+	batV = float(request.args.get("batV"))
+	await homebridge.updateChar(ACC, "StatusLowBattery", 1 if batV < 2.3 else 0)
 	return ""
