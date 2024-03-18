@@ -134,14 +134,30 @@ def getDeltasThisYear():
 def getCurrentFlow():
 	return froniusRequest("GetPowerFlowRealtimeData.fcgi")["Body"]["Data"]["Site"]
 
+def formatVal(val):
+	if val is None:
+		return str(val)
+	if val > 1000000:
+		val /= 1000000
+		suffix = "M"
+	elif val > 1000:
+		val /= 1000
+		suffix = "k"
+	else:
+		suffix = ""
+	val = round(val, 2)
+	if val == int(val):
+		val = int(val)
+	return f"{val}{suffix}"
+
 def showSummary():
 	flow = getCurrentFlow()
-	print(f"now: consumption {-flow['P_Load']}, ", end="")
-	print(f"generating {flow['P_PV']}, ", end="")
+	print(f"now: consumption {formatVal(-flow['P_Load'])}, ", end="")
+	print(f"generating {formatVal(flow['P_PV'])}, ", end="")
 	if flow["P_Grid"] > 0:
-		print(f"importing {flow['P_Grid']}")
+		print(f"importing {formatVal(flow['P_Grid'])}")
 	else:
-		print(f"exporting {-flow['P_Grid']}")
+		print(f"exporting {formatVal(-flow['P_Grid'])}")
 	for name, func in (
 		("last hour", getDeltasLastHour),
 		("today", getDeltasToday),
@@ -156,5 +172,5 @@ def showSummary():
 		print(f"{name}: ", end="")
 		summary = []
 		for key in ("used", "generated", "exported", "imported"):
-			summary.append(f"{key} {deltas[key]}")
+			summary.append(f"{key} {formatVal(deltas[key])}")
 		print(", ".join(summary))
