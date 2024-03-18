@@ -81,7 +81,7 @@ def getDeltasDuring(start, end):
 			sqlalchemy.func.sum(EnergyLog.imported).label("imported")
 		).where(EnergyLog.time >= start).where(EnergyLog.time <= end)
 	))._asdict()
-	deltas["used"] = (
+	deltas["consumed"] = (
 		(deltas["generated"] or 0)
 		- (deltas["exported"] or 0)
 		+ (deltas["imported"] or 0)
@@ -131,6 +131,19 @@ def getDeltasThisYear():
 	yearStart = datetime.date(now.year, 1, 1)
 	return getDeltasDuring(yearStart, now)
 
+def getDeltasForDay(day):
+	start = datetime.datetime.combine(day, datetime.time.min)
+	hour = datetime.timedelta(hours=1)
+	now = datetime.datetime.now()
+	for h in range(24):
+		end = start + hour
+		if end > now:
+			return
+		deltas = getDeltasDuring(start, end)
+		deltas["name"] = h
+		yield deltas
+		start = end
+
 def getCurrentFlow():
 	return froniusRequest("GetPowerFlowRealtimeData.fcgi")["Body"]["Data"]["Site"]
 
@@ -149,28 +162,3 @@ def formatVal(val):
 	if val == int(val):
 		val = int(val)
 	return f"{val}{suffix}"
-
-def showSummary():
-	flow = getCurrentFlow()
-	print(f"now: consumption {formatVal(-flow['P_Load'])}, ", end="")
-	print(f"generating {formatVal(flow['P_PV'])}, ", end="")
-	if flow["P_Grid"] > 0:
-		print(f"importing {formatVal(flow['P_Grid'])}")
-	else:
-		print(f"exporting {formatVal(-flow['P_Grid'])}")
-	for name, func in (
-		("last hour", getDeltasLastHour),
-		("today", getDeltasToday),
-		("yesterday", getDeltasYesterday),
-		("this week", getDeltasThisWeek),
-		("last week", getDeltasLastWeek),
-		("this month", getDeltasThisMonth),
-		("last month", getDeltasLastMonth),
-		("this year", getDeltasThisYear),
-	):
-		deltas = func()
-		print(f"{name}: ", end="")
-		summary = []
-		for key in ("used", "generated", "exported", "imported"):
-			summary.append(f"{key} {formatVal(deltas[key])}")
-		print(", ".join(summary))
