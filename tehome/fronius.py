@@ -137,11 +137,11 @@ def getDeltasForDay(day):
 	now = datetime.datetime.now()
 	for h in range(24):
 		end = start + hour
-		if end > now:
-			return
 		deltas = getDeltasDuring(start, end)
 		deltas["name"] = h
 		yield deltas
+		if end > now:
+			return
 		start = end
 
 def getCurrentFlow():
