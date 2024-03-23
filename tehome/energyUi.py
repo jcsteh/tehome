@@ -76,6 +76,16 @@ def getHtmlReport():
 			deltas["imported"]
 		))
 	out.append('</table>\n')
+	out.append(formatTableBegin("Last 7 Days", "Hour"))
+	for deltas in fronius.getDeltasForLastDays():
+		out.append(formatRow(
+			deltas["name"],
+			deltas["consumed"],
+			deltas["generated"],
+			deltas["exported"],
+			deltas["imported"]
+		))
+	out.append('</table>\n')
 	out.append('</body>\n</html>\n')
 	return "".join(out)
 

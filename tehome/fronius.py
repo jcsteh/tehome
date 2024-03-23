@@ -144,6 +144,17 @@ def getDeltasForDay(day):
 			return
 		start = end
 
+def getDeltasForLastDays():
+	end = datetime.date.today()
+	start = end - datetime.timedelta(days=7)
+	day = datetime.timedelta(days=1)
+	for d in range(7):
+		end = start + day
+		deltas = getDeltasDuring(start, end)
+		deltas["name"] = start.strftime("%a %d %b")
+		yield deltas
+		start = end
+
 def getCurrentFlow():
 	return froniusRequest("GetPowerFlowRealtimeData.fcgi")["Body"]["Data"]["Site"]
 
