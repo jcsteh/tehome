@@ -24,11 +24,15 @@ async def auto():
 	global wasAcOn
 	for g in airtouch.groups:
 		temp = getTemp(g)
-		if (airtouch.groups[g].PowerState == 'On' and 
-				((config.AIRTOUCH_HEAT and temp >= config.AIRTOUCH_TEMP) or
-				(not config.AIRTOUCH_HEAT and temp <= config.AIRTOUCH_TEMP))):
-			print("Air group %d reached target temp, turning off" % g)
-			await airtouch.TurnGroupOff(g)
+		if airtouch.groups[g].PowerState == 'On':
+			if ((config.AIRTOUCH_HEAT and temp >= config.AIRTOUCH_TEMP) or
+					(not config.AIRTOUCH_HEAT and temp <= config.AIRTOUCH_TEMP)):
+				print("Air group %d reached target temp, turning off" % g)
+				await airtouch.TurnGroupOff(g)
+			elif (airtouch.groups[g].ControlMethod == 'TemperatureControl' or
+					airtouch.groups[g].OpenPercentage < 100):
+				print("Setting air group %d to 100%%" % g)
+				await airtouch.SetGroupToPercentage(g, 100)
 	isAcOn = airtouch.acs[0].PowerState == 'On'
 	if isAcOn and all(g.PowerState == 'Off' for g in airtouch.groups.values()):
 		print("Turning off air main")
