@@ -2,7 +2,7 @@ import asyncio
 import bleak
 import switchbot
 from quart import request
-from . import config, homebridge, web
+from . import config, homebridge, slack, web
 
 OPEN = 0
 CLOSED = 1
@@ -15,6 +15,7 @@ LUX_ACC = "Garage light sensor"
 TOO_LONG_ACC = "Garage door open too long"
 state = CLOSED
 doorNotifyTask = None
+botBattery = None
 
 async def get(char):
 	if char in ("CurrentDoorState", "TargetDoorState"):
@@ -69,3 +70,16 @@ async def onGarageSensor():
 async def notifyOpenTooLong():
 	await asyncio.sleep(300)
 	await homebridge.updateChar(TOO_LONG_ACC, "MotionDetected", 1)
+
+async def batteryChecker():
+	global botBattery
+	while True:
+		# Run every 24 hours.
+		await asyncio.sleep(86400)
+		bot = await getBot()
+		info = await bot.get_basic_info()
+		newBat = info["battery"]
+		print(f"garage bot battery {newBat}%")
+		if newBat <= 10 and newBat != botBattery:
+			botBattery = newBat
+			await slack.msg(f"garage bot battery {newBat}%")
