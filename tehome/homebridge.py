@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import websockets
-from . import garage, airtouch, flood
+from . import garage, airtouch
 
 async def connect():
 	global bridge
@@ -71,5 +71,7 @@ async def setup():
 	await airtouch.airtouch.UpdateInfo()
 	for group in airtouch.airtouch.groups:
 		await addAccessory("%s%d" % (airtouch.ACC_PREFIX, group), "Thermostat")
+	from . import flood, doorbell, homekit
 	await addAccessory(flood.ACC, "LeakSensor")
 	await addAccessory(homekit.ACC, "StatelessProgrammableSwitch")
+	await addAccessory(doorbell.CHIME_ACC, "Doorbell")

@@ -1,5 +1,5 @@
 import asyncio
-from . import homebridge, airtouch, phone, web, homekit, energyUi, garage
+from . import homebridge, airtouch, phone, web, homekit, energyUi, garage, doorbell
 
 async def main():
 	await asyncio.gather(
@@ -9,6 +9,7 @@ async def main():
 		web.handler(),
 		homekit.poll(),
 		garage.batteryChecker(),
+		doorbell.handler(),
 	)
 
 if __name__ == "__main__":
