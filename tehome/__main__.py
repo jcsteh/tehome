@@ -8,7 +8,7 @@ async def main():
 		phone.handler(),
 		web.handler(),
 		homekit.poll(),
-		garage.batteryChecker(),
+		#garage.batteryChecker(),
 		doorbell.handler(),
 	)
 
