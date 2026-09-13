@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import json
 from google.cloud import pubsub_v1
-from . import config, homebridge
+from . import config, homebridge, ntfy
 
 CHIME_ACC = "Doorbell"
 
@@ -16,6 +16,10 @@ def callback(message):
 		return
 	if events.get("sdm.devices.events.DoorbellChime.Chime"):
 		print("Doorbell pressed")
+		asyncio.run_coroutine_threadsafe(
+			ntfy.msg("doorbell pressed"),
+			loop
+		)
 		now = datetime.datetime.now()
 		if config.DOORBELL_START_TIME <= (now.hour, now.minute) <= config.DOORBELL_END_TIME:
 			asyncio.run_coroutine_threadsafe(
