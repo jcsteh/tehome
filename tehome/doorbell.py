@@ -28,6 +28,10 @@ def callback(message):
 			)
 	if events.get("sdm.devices.events.CameraPerson.Person"):
 		print("Doorbell: person detected")
+		asyncio.run_coroutine_threadsafe(
+			ntfy.msg("doorbell: person detected"),
+			loop
+		)
 
 async def handler():
 	global loop
