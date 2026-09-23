@@ -73,13 +73,13 @@ def logData():
 		total.total = newTotals[total.name]
 	session.commit()
 
-def getDeltasDuring(start, end):
+def getDeltasDuring(start, end, *filters):
 	deltas = next(session.execute(
 		sqlalchemy.select(
 			sqlalchemy.func.sum(EnergyLog.generated).label("generated"),
 			sqlalchemy.func.sum(EnergyLog.exported).label("exported"),
 			sqlalchemy.func.sum(EnergyLog.imported).label("imported")
-		).where(EnergyLog.time >= start).where(EnergyLog.time <= end)
+		).where(EnergyLog.time >= start).where(EnergyLog.time < end).where(*filters)
 	))._asdict()
 	deltas["consumed"] = (
 		(deltas["generated"] or 0)
@@ -87,6 +87,50 @@ def getDeltasDuring(start, end):
 		+ (deltas["imported"] or 0)
 	)
 	return deltas
+
+def getDeltasDuringTariff(start, end, tariff):
+	"""Return the energy deltas in a local-time tariff window."""
+	totals = {"generated": 0, "exported": 0, "imported": 0, "consumed": 0}
+	for startTime, endTime in tariff["periods"]:
+		time = sqlalchemy.func.time(EnergyLog.time)
+		if endTime == "24:00:00":
+			deltas = getDeltasDuring(start, end, time >= startTime)
+		elif startTime < endTime:
+			deltas = getDeltasDuring(start, end, time >= startTime, time < endTime)
+		else:
+			deltas = getDeltasDuring(start, end, sqlalchemy.or_(
+				time >= startTime, time < endTime
+			))
+		for name, value in deltas.items():
+			totals[name] += value or 0
+	return totals
+
+def getCostDuring(start, end, days):
+	"""Calculate import charges and export credit for a calendar period."""
+	tariffs = []
+	for tariff in config.TARIFFS:
+		deltas = getDeltasDuringTariff(start, end, tariff)
+		imported = deltas["imported"] or 0
+		tariffs.append({
+			"name": tariff["name"],
+			"imported": imported,
+			"energyCharge": imported / 1000 * tariff["import_cents_per_kwh"],
+		})
+
+	deltas = getDeltasDuring(start, end)
+	exported = deltas["exported"] or 0
+	feedInCredit = exported / 1000 * config.SOLAR_FEED_IN_CENTS_PER_KWH
+	supplyCharge = days * config.DAILY_SUPPLY_CHARGE_CENTS
+	energyCharge = sum(row["energyCharge"] for row in tariffs)
+	return {
+		"tariffs": tariffs,
+		"imported": deltas["imported"] or 0,
+		"energyCharge": energyCharge,
+		"exported": exported,
+		"feedInCredit": feedInCredit,
+		"supplyCharge": supplyCharge,
+		"netCost": energyCharge + supplyCharge - feedInCredit,
+	}
 
 def getDeltasLastHour():
 	now = datetime.datetime.now()
