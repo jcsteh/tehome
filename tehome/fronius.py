@@ -50,7 +50,7 @@ def getNewTotals():
 		inverters["Body"]["Data"]["TOTAL_ENERGY"]["Values"].values()
 	)
 	meters = froniusRequest("GetMeterRealtimeData.cgi?Scope=System")
-	data = meters["Body"]["Data"]["0"]
+	data = next(iter(meters["Body"]["Data"].values()))
 	totals["exported"] = data["EnergyReal_WAC_Sum_Produced"]
 	totals["imported"] = data["EnergyReal_WAC_Sum_Consumed"]
 	return totals
