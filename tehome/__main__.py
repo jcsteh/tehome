@@ -1,5 +1,7 @@
 import asyncio
-from . import homebridge, airtouch, web, homekit, energyUi, garage, doorbell
+from . import (
+	homebridge, airtouch, web, homekit, energyUi, garage, doorbell, flood,
+)
 
 async def main():
 	await asyncio.gather(
