@@ -33,6 +33,7 @@ heatingTime = datetime.timedelta()
 lastResetDate = None
 lastObservedAt = None
 lastHeatingAt = None
+forcedHeatingActive = False
 relayWasOn = False
 relayOnSince = None
 solarAboveSince = None
@@ -47,11 +48,12 @@ def getStateData():
 		"heatingSeconds": heatingTime.total_seconds(),
 		"lastResetDate": lastResetDate.isoformat() if lastResetDate else None,
 		"lastHeatingAt": lastHeatingAt.isoformat() if lastHeatingAt else None,
+		"forcedHeatingActive": forcedHeatingActive,
 	}
 
 
 def loadState():
-	global heatingTime, lastResetDate, lastHeatingAt, lastSavedState
+	global heatingTime, lastResetDate, lastHeatingAt, forcedHeatingActive, lastSavedState
 
 	try:
 		data = json.loads(stateFile.read_text())
@@ -71,6 +73,7 @@ def loadState():
 			datetime.datetime.fromisoformat(data["lastHeatingAt"])
 			if data["lastHeatingAt"] is not None else None
 		)
+		loadedForcedHeatingActive = data.get("forcedHeatingActive", False)
 	except (KeyError, TypeError, ValueError) as error:
 		print(f"Invalid hot water state: {error}")
 		return
@@ -78,6 +81,7 @@ def loadState():
 	heatingTime = loadedHeatingTime
 	lastResetDate = loadedResetDate
 	lastHeatingAt = loadedHeatingAt
+	forcedHeatingActive = loadedForcedHeatingActive
 	lastSavedState = getStateData()
 
 
@@ -128,16 +132,18 @@ def setRelay(on):
 
 def resetIfNeeded(now):
 	"""Start a new heating day at 11:05 AM."""
-	global heatingTime, lastResetDate
+	global heatingTime, lastResetDate, forcedHeatingActive
 
 	if now.time() >= SOLAR_START and lastResetDate != now.date():
 		heatingTime = datetime.timedelta()
 		lastResetDate = now.date()
+		forcedHeatingActive = False
 		print("Reset hot water heating time")
 		return True
 	elif lastResetDate is None:
 		# Before 11:05 AM, the current heating day began yesterday.
 		lastResetDate = now.date() - datetime.timedelta(days=1)
+		forcedHeatingActive = False
 		return True
 	return False
 
@@ -186,7 +192,8 @@ def mayTurnOff(now):
 
 async def auto():
 	"""Perform one poll and make any needed relay change."""
-	global waitingForMinimumOnTime, solarAboveSince, solarBelowSince
+	global forcedHeatingActive, waitingForMinimumOnTime
+	global solarAboveSince, solarBelowSince
 
 	now = datetime.datetime.now()
 	relayIsOn = await asyncio.to_thread(getRelayState)
@@ -210,14 +217,21 @@ async def auto():
 		lastHeatingAt is None
 		or now - lastHeatingAt >= MAX_TIME_BETWEEN_HEATING
 	)
+	forcedHeatingChanged = False
+	if inSolarWindow and hasNotHeatedRecently and not forcedHeatingActive:
+		forcedHeatingActive = True
+		forcedHeatingChanged = True
+	if heatingTime >= DAILY_HEATING_TARGET and forcedHeatingActive:
+		forcedHeatingActive = False
+		forcedHeatingChanged = True
 
 	shouldTurnOn = heatingTime < DAILY_HEATING_TARGET and (
-		(inSolarWindow and (solarHigh or hasNotHeatedRecently))
+		(inSolarWindow and (solarHigh or forcedHeatingActive))
 		or inBackupWindow
 	)
 	shouldTurnOff = (
 		heatingTime >= DAILY_HEATING_TARGET
-		or (inSolarWindow and solarLow)
+		or (inSolarWindow and solarLow and not forcedHeatingActive)
 		or (not inSolarWindow and not inBackupWindow)
 	)
 
@@ -231,12 +245,15 @@ async def auto():
 			await asyncio.to_thread(setRelay, False)
 			recordRelayState(now, False)
 			relayStateChanged = True
+			if forcedHeatingActive:
+				forcedHeatingActive = False
+				forcedHeatingChanged = True
 			waitingForMinimumOnTime = False
 		elif not waitingForMinimumOnTime:
 			print("Hot water is waiting for its one-hour minimum on-time")
 			waitingForMinimumOnTime = True
 
-	saveState(now, force=relayStateChanged or reset)
+	saveState(now, force=relayStateChanged or reset or forcedHeatingChanged)
 
 
 async def poll():
