@@ -1,6 +1,6 @@
 import asyncio
 from . import (
-	homebridge, airtouch, web, homekit, energyUi, garage, doorbell, flood,
+	homebridge, airtouch, web, homekit, energyUi, garage, doorbell, flood, hotWater,
 )
 
 async def main():
@@ -12,6 +12,7 @@ async def main():
 		homekit.poll(),
 		#garage.batteryChecker(),
 		doorbell.handler(),
+		hotWater.poll(),
 	)
 
 if __name__ == "__main__":
