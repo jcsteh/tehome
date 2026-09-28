@@ -5,7 +5,7 @@ import requests
 import sqlalchemy
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import Column, DateTime, Integer, String
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 
 from . import config
 
@@ -29,7 +29,9 @@ engine = sqlalchemy.create_engine(
 	"sqlite:///" + os.path.join(os.path.dirname(__file__), "fronius.db"),
 	future=True
 )
-session = sqlalchemy.orm.Session(engine)
+# A Session is not thread-safe.  Keep the existing module-level API, but give
+# each worker thread its own Session (and therefore its own SQLite connection).
+session = scoped_session(sessionmaker(bind=engine))
 
 def initDb():
 	Model.metadata.create_all(engine)

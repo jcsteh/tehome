@@ -62,6 +62,14 @@ def formatCostGroup(name, cost, divisor=1):
 	return out
 
 def getHtmlReport():
+	try:
+		return _getHtmlReport()
+	finally:
+		# The report runs in a worker thread.  Return that thread's connection to
+		# the pool before the worker can be reused for another request.
+		fronius.session.remove()
+
+def _getHtmlReport():
 	out = []
 	out.append(
 		'<html>\n<head>\n<title>Energy Report</title>\n</head\n>'
